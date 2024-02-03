@@ -1,7 +1,12 @@
 const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv")
 const { userModel } = require("../Model/userModel");
 const { resumeModel } = require("../Model/resumeModel");
+const { OAuth2Client } = require('google-auth-library');
+dotenv.config()
 
+const CLIENT_ID = process.env.GOOGLE_PRIVATE_KEY;
+const client = new OAuth2Client(CLIENT_ID);
 
 exports.test = async (req, res) => {
     return res.json({
@@ -9,9 +14,9 @@ exports.test = async (req, res) => {
         status: 200
     })
 }
-exports.createUser = async (req, res) => {
+exports.createUser = async (req, res, userDataObj = null) => {
     try {
-        let data = req.body;
+        let data = userDataObj != null ? userDataObj : req.body;
         let userObj = await userModel.create(data);
         res.json({
             message: "user created successfully",
@@ -31,7 +36,6 @@ exports.getAllUser = async (req, res) => {
     try {
         let users = await userModel.find({});
         //    let is =  user[0]._id.toString();
-        //     console.log(user,is);
         res.json({
             message: "Success",
             status: 200,
@@ -48,7 +52,6 @@ exports.getAllUser = async (req, res) => {
 exports.getUsersById = async (req, res) => {
     try {
         let { id } = req.params
-        console.log(typeof id)
         let userObj = await userModel.findById(id);
         res.json({
             message: "Success",
@@ -88,7 +91,6 @@ exports.updateUser = async (req, res) => {
 exports.deleteUserById = async (req, res) => {
     try {
         let { id } = req.params;
-        console.log(id);
         let deletedObj = await userModel.findByIdAndDelete(id);
         res.json({
             message: "Sucess",
@@ -157,18 +159,18 @@ exports.verifyUserToken = async (req, res) => {
 //resume create
 exports.saveResume = async (req, res) => {
     try {
-        let data = req.body;
+        let data = req.body.data.Data;
         let resumeObj = await resumeModel.create(data);
         if (resumeObj) {
-            res.json({
+           return res.json({
                 data: data,
                 message: "resume saved successfully",
                 status: 200
             })
         }
     } catch (error) {
-        res.json({
-            error: data,
+       return res.json({
+            error: error,
             message: "failed to save resume",
             status: 400
         })
@@ -177,7 +179,6 @@ exports.saveResume = async (req, res) => {
 exports.getResumeById = async (req, res) => {
     try {
         const { resumeId, userId } = req.query;
-
         let resumeObj = null
         if (resumeId) {
             resumeObj = await resumeModel.findById(resumeId);
@@ -191,22 +192,72 @@ exports.getResumeById = async (req, res) => {
         }
 
         if (resumeObj) {
-            res.json({
+           return res.json({
                 data: resumeObj,
                 message: "Successfully get resume",
                 status: 200,
             });
         } else {
-            res.json({
+            return res.json({
                 message: "Resume not found",
                 status: 404,
             });
         }
     } catch (error) {
-        res.json({
+       return  res.json({
             error: error.message,
             message: "Failed to get resume",
             status: 400,
+        });
+    }
+};
+exports.googleUserVerify = async (req, res) => {
+    try {
+        const { idToken } = req.body.data;
+        // Verify the Google ID Token
+        const ticket = await client.verifyIdToken({
+            idToken,
+            audience: CLIENT_ID,
+        });
+
+        const payload = await ticket.getPayload();
+        if (payload.email_verified) {
+            let userEmailExists = await userModel.findOne({ email: payload.email });
+
+            if (userEmailExists) {
+               return res.json({
+                    data: userEmailExists,
+                    status: 200,
+                    message: "Login user Successfully"
+                });
+            } else {
+                let userObj = {
+                    email: payload.email,
+                    name: payload.name,
+                    GAuthUser: true
+                };
+
+                let userData = await this.createUser(req, res, userObj);
+
+                if (userData) {
+                  return  res.json({
+                        data: userData,
+                        status: 200,
+                        message: "Login and created user Successfully"
+                    });
+                } else {
+                  return  res.status(400).json({
+                        status: 400,
+                        error: "Failed to create user"
+                    });
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error in googleUserVerify:", error);
+        return res.status(500).json({
+            status: 500,
+            error: "Internal Server Error"
         });
     }
 };

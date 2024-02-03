@@ -14,7 +14,7 @@ app.use(cors()); //CORS is a node.js package for providing a Connect/Express mid
 app.use(express.json()); //it is used to parse incoming JSON data in the request body. This middleware is necessary when dealing with JSON data in POST requests,
 
 app.use("/user", userRoute)
-app.use("/login", authRoute)
+app.use("/auth", authRoute)
 app.use("/resume", resumeRouter)
 app.listen(process.env.PORT || 9000, function () {
     console.log(process.env.PORT || 9000)
