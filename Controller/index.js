@@ -14,10 +14,10 @@ exports.test = async (req, res) => {
         status: 200
     })
 }
-exports.createUser = async (req, res, userDataObj = null) => {
+exports.createUser = async (req, res) => {
     try {
-        let data = userDataObj != null ? userDataObj : req.body;
-        let userObj = await userModel.create(data);
+        const userData = req.body.data; // Use provided userDataObj or fallback to req.body.data
+        const userObj = await userModel.create(userData);
         res.json({
             message: "user created successfully",
             data: userObj,
@@ -162,14 +162,14 @@ exports.saveResume = async (req, res) => {
         let data = req.body.data.Data;
         let resumeObj = await resumeModel.create(data);
         if (resumeObj) {
-           return res.json({
+            return res.json({
                 data: data,
                 message: "resume saved successfully",
                 status: 200
             })
         }
     } catch (error) {
-       return res.json({
+        return res.json({
             error: error,
             message: "failed to save resume",
             status: 400
@@ -192,7 +192,7 @@ exports.getResumeById = async (req, res) => {
         }
 
         if (resumeObj) {
-           return res.json({
+            return res.json({
                 data: resumeObj,
                 message: "Successfully get resume",
                 status: 200,
@@ -204,13 +204,30 @@ exports.getResumeById = async (req, res) => {
             });
         }
     } catch (error) {
-       return  res.json({
+        return res.json({
             error: error.message,
             message: "Failed to get resume",
             status: 400,
         });
     }
 };
+async function createUserByGoogle(userData) {
+    try {
+        const userObj = await userModel.create(userData);
+        return {
+            message: "user created successfully",
+            data: userObj,
+            status: 200
+        }
+    }
+    catch (error) {
+        return {
+            error: error,
+            message: "failed to create user",
+            status: 400
+        }
+    }
+}
 exports.googleUserVerify = async (req, res) => {
     try {
         const { idToken } = req.body.data;
@@ -225,7 +242,7 @@ exports.googleUserVerify = async (req, res) => {
             let userEmailExists = await userModel.findOne({ email: payload.email });
 
             if (userEmailExists) {
-               return res.json({
+                return res.json({
                     data: userEmailExists,
                     status: 200,
                     message: "Login user Successfully"
@@ -237,16 +254,16 @@ exports.googleUserVerify = async (req, res) => {
                     GAuthUser: true
                 };
 
-                let userData = await this.createUser(req, res, userObj);
+                let userData = await createUserByGoogle(req, res, userObj);
 
                 if (userData) {
-                  return  res.json({
+                    return res.json({
                         data: userData,
                         status: 200,
                         message: "Login and created user Successfully"
                     });
                 } else {
-                  return  res.status(400).json({
+                    return res.status(400).json({
                         status: 400,
                         error: "Failed to create user"
                     });

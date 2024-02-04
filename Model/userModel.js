@@ -20,13 +20,8 @@ let userSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    resumesId: {
-        type: String,
-    },
     GAuthUser: {
         type: Boolean,
-        required: true
-
     }
 })
 let userModel = mongoose.model("Users", userSchema);
