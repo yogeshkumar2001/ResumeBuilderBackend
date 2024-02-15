@@ -6,3 +6,5 @@ userRoute.get("/getall", getAllUser);
 userRoute.route("/:id").get(getUsersById).patch(updateUser).delete(deleteUserById);
 
 module.exports.userRoute = userRoute;
+
+

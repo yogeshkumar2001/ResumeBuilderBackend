@@ -22,6 +22,9 @@ let userSchema = mongoose.Schema({
     },
     GAuthUser: {
         type: Boolean,
+    },
+    imgUrl:{
+        type:String,
     }
 })
 let userModel = mongoose.model("Users", userSchema);

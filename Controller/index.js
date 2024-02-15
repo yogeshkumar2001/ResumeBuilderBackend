@@ -19,7 +19,7 @@ exports.createUser = async (req, res) => {
         const userData = req.body.data; // Use provided userDataObj or fallback to req.body.data
         const userObj = await userModel.create(userData);
         res.json({
-            message: "user created successfully",
+            message: "User created successfully",
             data: userObj,
             status: 200
         })
@@ -93,7 +93,7 @@ exports.deleteUserById = async (req, res) => {
         let { id } = req.params;
         let deletedObj = await userModel.findByIdAndDelete(id);
         res.json({
-            message: "Sucess",
+            message: "Success",
             data: deletedObj,
             status: 200
         })
@@ -109,7 +109,7 @@ exports.deleteUserById = async (req, res) => {
 
 exports.loginUser = async (req, res) => {
     try {
-        let { email, password } = req.body;
+        let { email, password } = req.body.data;
         let user = await userModel.findOne({ email: email }).exec();
         if (user && user.password == password) {
             const token = jwt.sign({ userId: user._id }, process.env.JWT_PRIVATE_KEY, { expiresIn: '120s' })
@@ -176,6 +176,25 @@ exports.saveResume = async (req, res) => {
         })
     }
 }
+exports.deleteResumeByid = async(req, res)=>{
+        try{
+            let id = req.params.id;
+            let deletedObj = await resumeModel.findByIdAndDelete(id);
+            if(deletedObj){
+                res.status(200).json({
+                    data:deletedObj,
+                    message:"Resume deleted successfully",
+                    status:200
+                })
+            }
+        }catch(error){
+            res.status(200).json({
+                error:error,
+                message:"Resume deletion failed",
+                status:400
+            })
+        }
+}
 exports.getResumeById = async (req, res) => {
     try {
         const { resumeId, userId } = req.query;
@@ -214,10 +233,18 @@ exports.getResumeById = async (req, res) => {
 async function createUserByGoogle(userData) {
     try {
         const userObj = await userModel.create(userData);
-        return {
-            message: "user created successfully",
-            data: userObj,
-            status: 200
+        if(userObj.email){
+            return {
+                message: "user created successfully",
+                data: userObj,
+                status: 200
+            }
+        }else{
+            return {
+                error: "error",
+                message: "failed to create user",
+                status: 400
+            }
         }
     }
     catch (error) {
@@ -238,6 +265,7 @@ exports.googleUserVerify = async (req, res) => {
         });
 
         const payload = await ticket.getPayload();
+        console.log(payload)
         if (payload.email_verified) {
             let userEmailExists = await userModel.findOne({ email: payload.email });
 
@@ -251,18 +279,21 @@ exports.googleUserVerify = async (req, res) => {
                 let userObj = {
                     email: payload.email,
                     name: payload.name,
-                    GAuthUser: true
+                    GAuthUser: true,
+                    imgUrl:payload.picture
                 };
-
-                let userData = await createUserByGoogle(req, res, userObj);
-
-                if (userData) {
-                    return res.json({
-                        data: userData,
-                        status: 200,
-                        message: "Login and created user Successfully"
-                    });
-                } else {
+                console.log(userObj)
+                try{
+                    let userData = await createUserByGoogle(userObj);
+                    console.log(userData)
+                    if (userData.data.email) {
+                        return res.json({
+                            data: userData,
+                            status: 200,
+                            message: "Login and created user Successfully"
+                        });
+                } 
+            }catch(error) {
                     return res.status(400).json({
                         status: 400,
                         error: "Failed to create user"
