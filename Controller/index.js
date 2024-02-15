@@ -163,7 +163,7 @@ exports.saveResume = async (req, res) => {
         let resumeObj = await resumeModel.create(data);
         if (resumeObj) {
             return res.json({
-                data: data,
+                data: resumeObj,
                 message: "resume saved successfully",
                 status: 200
             })
